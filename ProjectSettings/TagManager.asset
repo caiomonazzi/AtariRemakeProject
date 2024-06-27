@@ -12,6 +12,7 @@ TagManager:
   - Key
   - Door
   - Ground
+  - _bulletPool
   layers:
   - Default
   - TransparentFX

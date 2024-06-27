@@ -40,5 +40,13 @@ namespace Berzerk
             scoreStore = PlayerPrefs.GetFloat("scoreStore", scoreStore);
             XPText.text = scoreStore.ToString();
         }
+
+        public void ResetXP()
+        {
+            PlayerPrefs.DeleteKey("scoreStore");
+            XP = 0;
+            scoreStore = 0;
+            UpdateXPDisplay();
+        }
     }
 }

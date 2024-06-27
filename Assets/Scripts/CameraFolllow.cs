@@ -4,28 +4,38 @@ namespace Berzerk
 {
     public class CameraFollow : MonoBehaviour
     {
-        [Header("Set in Inspector")]
-        public Transform player; // Reference to the player's transform
-        public float smoothing = 5f; // Smoothing factor for the camera movement
-
-        private Vector3 offset; // Offset from the player
+        public float smoothing = 5f;
+        private Transform player;
+        private Vector3 offset;
 
         private void Start()
         {
-            // Calculate and store the offset value by getting the distance between the player's position and camera's position.
-            offset = transform.position - player.position;
+            FindPlayer();
         }
 
         private void LateUpdate()
         {
-            // Create a position the camera is aiming for based on the offset from the player.
-            Vector3 targetCamPos = player.position + offset;
+            if (player == null)
+            {
+                FindPlayer();
+            }
 
-            // Ensure the Z axis is always -10
-            targetCamPos.z = -10;
+            if (player != null)
+            {
+                Vector3 targetCamPos = player.position + offset;
+                targetCamPos.z = -10;
+                transform.position = Vector3.Lerp(transform.position, targetCamPos, smoothing * Time.deltaTime);
+            }
+        }
 
-            // Smoothly interpolate between the camera's current position and its target position.
-            transform.position = Vector3.Lerp(transform.position, targetCamPos, smoothing * Time.deltaTime);
+        private void FindPlayer()
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+                offset = transform.position - player.position;
+            }
         }
     }
 }

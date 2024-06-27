@@ -9,7 +9,6 @@ namespace Berzerk
         [Header("General Settings")]
         public Transform firePoint;
         public float bulletForce;
-        public Animator camAnim;
         public AudioSource gunShot;
         private bool canShoot;
         public bool isInteracting;
@@ -28,7 +27,6 @@ namespace Berzerk
         [Header("Ammo Settings")]
         public int maxAmmo = 300;
         public int currentAmmo;
-        public Text ammoDisplay;
 
         [Header("Bullet Pool Settings")]
         public BulletPool bulletPool;
@@ -49,6 +47,13 @@ namespace Berzerk
             muzzleFlash.SetActive(false);
             canShoot = true;
             currentAmmo = maxAmmo;
+
+            // Fetch the BulletPool tagged as "_bulletPool"
+            GameObject bulletPoolObject = GameObject.FindGameObjectWithTag("_bulletPool");
+            if (bulletPoolObject != null)
+            {
+                bulletPool = bulletPoolObject.GetComponent<BulletPool>();
+            }
         }
 
         private void HandleShootingCooldown()
@@ -64,35 +69,25 @@ namespace Berzerk
             if (canShoot && timeToFire <= 0f && !isInteracting)
             {
                 currentAmmo--;
-                if (camAnim != null)
-                {
-                    camAnim.SetBool("Shaking", true);
-                }
-                gunShot?.Play();
-                StartCoroutine(StopCameraShake());
 
-                GameObject bullet = bulletPool.GetBullet();
-                bullet.transform.position = firePoint.position;
-                bullet.transform.rotation = firePoint.rotation;
-                Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-                rb.velocity = Vector2.zero;
-                rb.AddForce(direction * bulletForce, ForceMode2D.Impulse);
-                StartCoroutine(ReturnBulletToPool(bullet, 2f)); // Return bullet to pool after 2 seconds
+                gunShot?.Play();
+
+                GameObject bullet = bulletPool?.GetBullet();
+                if (bullet != null)
+                {
+                    bullet.transform.position = firePoint.position;
+                    bullet.transform.rotation = firePoint.rotation;
+                    Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
+                    rb.velocity = Vector2.zero;
+                    rb.AddForce(direction * bulletForce, ForceMode2D.Impulse);
+                    StartCoroutine(ReturnBulletToPool(bullet, 5f)); // Return bullet to pool after 5 seconds
+                }
 
                 timeToFire = timeToFireMax;
                 if (!flashing)
                 {
                     StartCoroutine(Flashtime());
                 }
-            }
-        }
-
-        private IEnumerator StopCameraShake()
-        {
-            yield return new WaitForSeconds(0.015f);
-            if (camAnim != null)
-            {
-                camAnim.SetBool("Shaking", false);
             }
         }
 
@@ -112,14 +107,18 @@ namespace Berzerk
 
         private void UpdateAmmoDisplay()
         {
-            ammoDisplay.text = currentAmmo.ToString();
+            UIManager uiManager = UIManager.Instance;
+            if (uiManager != null && uiManager.ammoDisplay != null)
+            {
+                uiManager.ammoDisplay.text = currentAmmo.ToString();
+            }
             canShoot = currentAmmo > 0;
         }
 
         private IEnumerator ReturnBulletToPool(GameObject bullet, float delay)
         {
             yield return new WaitForSeconds(delay);
-            bulletPool.ReturnBullet(bullet);
+            bulletPool?.ReturnBullet(bullet);
         }
     }
 }

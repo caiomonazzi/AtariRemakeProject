@@ -4,18 +4,25 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-
 namespace Berzerk
 {
+    [System.Serializable]
+    public class PlayerData
+    {
+        public float health;
+        public int coins;
+        public int ammo;
+        public HashSet<int> keys = new HashSet<int>();
+    }
+
     public class Player : MonoBehaviour
     {
-        #region Variables:
-        public static Player Instance; // Singleton
+        public static Player Instance { get; private set; }
+        private PlayerData playerData;
+        private Vector3 startPosition; // Store the start position
 
         [Header("Components Settings")]
         public Rigidbody2D rb;
-        public Slider healthSlider;
-        public Text coins;
         private XPSystem xpSystem;
 
         [Header("Movement Settings")]
@@ -25,14 +32,12 @@ namespace Berzerk
 
         [Header("Health")]
         private const float maxHealth = 100f;
-        public float health;
 
         [Header("Weapons/Ammo")]
         private Shoot shot;
         public GameObject projectilePrefab;
         public float projectileSpeed = 10f;
         public float aimAssistAngleThreshold = 10f; // Angle threshold for aim assist
-        private bool aimAssistActive = false;
 
         [Header("Keys")]
         private HashSet<int> keys;
@@ -41,25 +46,16 @@ namespace Berzerk
         [Header("Health Controller")]
         [HideInInspector] public bool isDead = false;
         [HideInInspector] public bool isHurting = false;
-        public int coinCount; // Coin count
+
         [Header("Parameters")]
+        public int coinCount; // Coin count
         public float timeToDamage; // Time for pause between AI damage
-        private bool isDamaged;
-
-        // Delegate to notify when the character dies.
-        public delegate void CharacterDeath();
-        public CharacterDeath OnDeath;
-
-        #endregion
 
         private void Awake()
         {
-            // Singleton
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
-
-
             }
             else
             {
@@ -68,57 +64,62 @@ namespace Berzerk
                 DontDestroyOnLoad(gameObject);
             }
 
-            xpSystem = FindFirstObjectByType<XPSystem>();
-            if (xpSystem != null)
-            {
-                Debug.Log("XPSystem Loaded");
-            }
-
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             InitializePlayerComponents();
+            LoadPlayerData();
+            RefreshStartingPoint();
         }
 
         private void InitializePlayerComponents()
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
+            xpSystem = GetComponent<XPSystem>();
+            shot = GetComponent<Shoot>();
+            if (shot != null)
             {
-                xpSystem = player.GetComponent<XPSystem>();
-
-                Debug.Log("Player components initialized.");
-            }
-            else
-            {
-                Debug.LogWarning("Player not found in the scene.");
+                // Fetch the BulletPool tagged as "_bulletPool"
+                GameObject bulletPoolObject = GameObject.FindGameObjectWithTag("_bulletPool");
+                if (bulletPoolObject != null)
+                {
+                    shot.bulletPool = bulletPoolObject.GetComponent<BulletPool>();
+                }
             }
         }
 
         private void Start()
         {
-            // Initialize health to max health
-            health = maxHealth;
-
-            // Initialize coin count
-            coinCount = 0;
-            UpdateCoinCountText();
-
-            shot = GetComponent<Shoot>();
+            startPosition = transform.position;
+            InitializePlayerComponents();
+            LoadPlayerData();
+            UpdateUIReferences();
         }
 
+        private void UpdateUIReferences()
+        {
+            UIManager uiManager = UIManager.Instance;
+            if (uiManager != null)
+            {
+                uiManager.healthSlider.value = playerData.health;
+                uiManager.coinsText.text = "Coins: " + coinCount;
+                if (shot != null)
+                {
+                    uiManager.ammoDisplay.text = shot.currentAmmo.ToString();
+                }
+            }
+        }
 
         private void Update()
         {
-            // Update health bar slider value
-            healthSlider.value = health;
+            UIManager uiManager = UIManager.Instance;
+            if (uiManager != null)
+                uiManager.healthSlider.value = playerData.health;
 
-            // Reload the scene if health drops below zero
-            if (health <= 0)
+            if (playerData.health <= 0)
             {
-                SceneManager.LoadScene(this.name);
+                ResetPlayer();
             }
 
             HandleMovementInput();
@@ -131,29 +132,28 @@ namespace Berzerk
             RotatePlayer();
         }
 
-        // Increase coin count and update UI
         public void IncreaseCoinCount()
         {
             coinCount++;
             UpdateCoinCountText();
+            SavePlayerData();
         }
 
-        // Update the coin count text
         private void UpdateCoinCountText()
         {
-            if (coins != null)
+            UIManager uiManager = UIManager.Instance;
+            if (uiManager != null)
             {
-                coins.text = "Coins: " + coinCount;
+                uiManager.coinsText.text = "Coins: " + coinCount;
             }
         }
 
-        // Decrease the player's health
         public void DecreaseHealth()
         {
-            health -= 10;
+            playerData.health -= 10;
+            SavePlayerData();
         }
 
-        // Handle collisions with zombies
         private void OnCollisionEnter2D(Collision2D collision)
         {
             if (collision.gameObject.CompareTag("Zombie"))
@@ -162,28 +162,27 @@ namespace Berzerk
             }
         }
 
-        // Handle triggers with medkits and ammo boxes
         private void OnTriggerEnter2D(Collider2D collision)
         {
             if (collision.gameObject.CompareTag("Medkit"))
             {
                 RestoreHealth();
                 Destroy(collision.gameObject);
+                SavePlayerData();
             }
             else if (collision.gameObject.CompareTag("AmmoBox"))
             {
                 RefillAmmo();
                 Destroy(collision.gameObject);
+                SavePlayerData();
             }
         }
 
-        // Restore health to max
         private void RestoreHealth()
         {
-            health = maxHealth;
+            playerData.health = maxHealth;
         }
 
-        // Refill ammo to max
         private void RefillAmmo()
         {
             if (shot == null)
@@ -192,7 +191,6 @@ namespace Berzerk
             }
             shot.currentAmmo = shot.maxAmmo;
         }
-
 
         private void HandleMovementInput()
         {
@@ -203,11 +201,7 @@ namespace Berzerk
 
             if (movement != Vector2.zero)
             {
-                if (!aimAssistActive || Vector2.Angle(lastDirection, movement) > aimAssistAngleThreshold)
-                {
-                    lastDirection = movement;
-                    aimAssistActive = false; // Disable aim assist when changing direction significantly
-                }
+                lastDirection = movement;
             }
         }
 
@@ -219,6 +213,7 @@ namespace Berzerk
                 {
                     Vector2 shootDirection = GetShootDirection();
                     shot.ShootLogic(shootDirection);
+                    SaveAmmo();
                 }
             }
         }
@@ -230,35 +225,11 @@ namespace Berzerk
 
         private void RotatePlayer()
         {
-            if (movement != Vector2.zero)
+            if (lastDirection != Vector2.zero)
             {
                 float angle = Mathf.Atan2(lastDirection.y, lastDirection.x) * Mathf.Rad2Deg - 90f;
                 rb.rotation = angle;
             }
-        }
-
-        private Vector2 GetShootDirection()
-        {
-            Vector2 shootDirection = lastDirection;
-            Vector2 playerPosition = rb.position;
-            Vector2 nearestEnemyPosition = GetNearestEnemyPosition();
-
-            if (nearestEnemyPosition != Vector2.zero)
-            {
-                Vector2 toTarget = (nearestEnemyPosition - playerPosition).normalized;
-                float angle = Vector2.Angle(lastDirection, toTarget);
-                if (angle <= aimAssistAngleThreshold)
-                {
-                    shootDirection = toTarget;
-                    aimAssistActive = true;
-                }
-            }
-            else
-            {
-                aimAssistActive = false;
-            }
-
-            return shootDirection;
         }
 
         private Vector2 GetNearestEnemyPosition()
@@ -280,6 +251,25 @@ namespace Berzerk
             return nearestEnemyPosition;
         }
 
+        private Vector2 GetShootDirection()
+        {
+            Vector2 shootDirection = lastDirection;
+            Vector2 playerPosition = rb.position;
+            Vector2 nearestEnemyPosition = GetNearestEnemyPosition();
+
+            if (nearestEnemyPosition != Vector2.zero)
+            {
+                Vector2 toTarget = (nearestEnemyPosition - playerPosition).normalized;
+                float angle = Vector2.Angle(lastDirection, toTarget);
+                if (angle <= aimAssistAngleThreshold)
+                {
+                    shootDirection = Vector2.Lerp(lastDirection, toTarget, angle / aimAssistAngleThreshold);
+                }
+            }
+
+            return shootDirection;
+        }
+
         public bool HasKey(int keyID)
         {
             return keys.Contains(keyID);
@@ -288,8 +278,8 @@ namespace Berzerk
         public void AddKey(int keyID)
         {
             keys.Add(keyID);
+            SaveKeys();
             Debug.Log("Key added: " + keyID);
-            // Update UI or play sound if needed
         }
 
         public void UseKey(int keyID)
@@ -297,86 +287,105 @@ namespace Berzerk
             if (keys.Contains(keyID))
             {
                 keys.Remove(keyID);
+                SaveKeys();
                 Debug.Log("Key used: " + keyID);
-                // Update UI or play sound if needed
+            }
+        }
+
+        private void SavePlayerData()
+        {
+            PlayerPrefs.SetFloat("PlayerHealth", playerData.health);
+            PlayerPrefs.SetInt("PlayerCoins", coinCount);
+            SaveAmmo();
+            PlayerPrefs.Save();
+        }
+
+        private void LoadPlayerData()
+        {
+            playerData = new PlayerData();
+            playerData.health = PlayerPrefs.GetFloat("PlayerHealth", maxHealth);
+            coinCount = PlayerPrefs.GetInt("PlayerCoins", 0);
+            LoadKeys();
+            LoadAmmo();
+        }
+
+        private void SaveKeys()
+        {
+            PlayerPrefs.SetString("PlayerKeys", string.Join(",", playerData.keys));
+            PlayerPrefs.Save();
+        }
+
+        private void LoadKeys()
+        {
+            playerData.keys.Clear();
+            string savedKeys = PlayerPrefs.GetString("PlayerKeys", "");
+            if (!string.IsNullOrEmpty(savedKeys))
+            {
+                string[] keyArray = savedKeys.Split(',');
+                foreach (string key in keyArray)
+                {
+                    if (int.TryParse(key, out int keyID))
+                    {
+                        playerData.keys.Add(keyID);
+                    }
+                }
+            }
+        }
+
+        public void SaveAmmo()
+        {
+            PlayerPrefs.SetInt("PlayerAmmo", shot.currentAmmo);
+            PlayerPrefs.Save();
+        }
+
+        private void LoadAmmo()
+        {
+            if (shot != null)
+            {
+                shot.currentAmmo = PlayerPrefs.GetInt("PlayerAmmo", shot.maxAmmo);
+            }
+        }
+
+        private void RefreshStartingPoint()
+        {
+            startPosition = transform.position;
+        }
+
+        private void ResetPlayer()
+        {
+            ResetPlayerData();
+            transform.position = startPosition; 
+            InitializePlayerComponents();
+            UpdateUIReferences();
+            RefreshStartingPoint(); 
+        }
+
+        public void ResetPlayerData()
+        {
+            PlayerPrefs.DeleteKey("PlayerHealth");
+            PlayerPrefs.DeleteKey("PlayerCoins");
+            PlayerPrefs.DeleteKey("PlayerKeys");
+            PlayerPrefs.DeleteKey("PlayerAmmo");
+            PlayerPrefs.DeleteKey("scoreStore");
+
+            playerData.health = maxHealth;
+            coinCount = 0;
+            playerData.keys.Clear();
+            UpdateCoinCountText();
+            UIManager uiManager = UIManager.Instance;
+            if (uiManager != null)
+                uiManager.healthSlider.value = playerData.health;
+
+            if (shot != null)
+            {
+                shot.currentAmmo = shot.maxAmmo;
+                SaveAmmo();
+            }
+
+            if (xpSystem != null)
+            {
+                xpSystem.ResetXP();
             }
         }
     }
 }
-
-
-
-/*using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace Berzerk
-{
-    public class TopDownMovement : MonoBehaviour
-    {
-        [Header("Movement Settings")]
-        public float moveSpeed = 5f;
-        public Rigidbody2D rb;
-
-        [Header("Shooting Settings")]
-        public GameObject projectilePrefab;
-        public float projectileSpeed = 10f;
-
-        private Vector2 movement;
-        private Vector2 lastDirection;
-
-        private void Update()
-        {
-            HandleMovementInput();
-            HandleShootingInput();
-        }
-
-        private void FixedUpdate()
-        {
-            MovePlayer();
-            RotatePlayer();
-        }
-
-        private void HandleMovementInput()
-        {
-            movement.x = Input.GetAxisRaw("Horizontal");
-            movement.y = Input.GetAxisRaw("Vertical");
-
-            if (movement != Vector2.zero)
-            {
-                lastDirection = movement;
-            }
-        }
-
-        private void HandleShootingInput()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                Shoot();
-            }
-        }
-
-        private void MovePlayer()
-        {
-            rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
-        }
-
-        private void RotatePlayer()
-        {
-            if (movement != Vector2.zero)
-            {
-                float angle = Mathf.Atan2(lastDirection.y, lastDirection.x) * Mathf.Rad2Deg - 90f;
-                rb.rotation = angle;
-            }
-        }
-
-        private void Shoot()
-        {
-            GameObject projectile = Instantiate(projectilePrefab, rb.position, Quaternion.identity);
-            Rigidbody2D projectileRb = projectile.GetComponent<Rigidbody2D>();
-            projectileRb.velocity = lastDirection * projectileSpeed;
-            Destroy(projectile, 2f); // Destroy the projectile after 2 seconds to avoid clutter
-        }
-    }
-}
-*/

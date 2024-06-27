@@ -149,10 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rb: {fileID: 2467520263460351717}
-  healthSlider: {fileID: 0}
-  coins: {fileID: 0}
   moveSpeed: 5
-  health: 0
   projectilePrefab: {fileID: 2347426817262178589, guid: 9c7ef1bafb7ee1b4bbb3674d6476f8db, type: 3}
   projectileSpeed: 10
   aimAssistAngleThreshold: 5
@@ -174,7 +171,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   firePoint: {fileID: 2467520263545067021}
   bulletForce: 12
-  camAnim: {fileID: 0}
   gunShot: {fileID: 2467520263460351715}
   isInteracting: 0
   fireRate: 5
@@ -183,7 +179,7 @@ MonoBehaviour:
   maxAmmo: 300
   currentAmmo: 0
   ammoDisplay: {fileID: 0}
-  bulletPool: {fileID: 4705333161348052767, guid: f50cbe126bdbaec448c4404f6723b313, type: 3}
+  bulletPool: {fileID: 0}
 --- !u!82 &2467520263460351715
 AudioSource:
   m_ObjectHideFlags: 0
