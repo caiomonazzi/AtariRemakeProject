@@ -33,7 +33,7 @@ namespace Berzerk
 
                 xp.IncreaseXP();
                 Destroy(this.gameObject);
-                StartCoroutine(ReturnEffectToPool(effect, 3f)); // Return effect to pool after 3 seconds
+                StartCoroutine(ReturnEffectToPool(effect, 1f)); // Return effect to pool after 1 second
             }
         }
 

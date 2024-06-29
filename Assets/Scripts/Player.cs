@@ -20,6 +20,7 @@ namespace Berzerk
         public static Player Instance { get; private set; }
         private PlayerData playerData;
         private Vector3 startPosition; // Store the start position
+        private Zombie zombie;
 
         [Header("Components Settings")]
         public Rigidbody2D rb;
@@ -70,6 +71,7 @@ namespace Berzerk
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             InitializePlayerComponents();
+            // ResetPlayerData();
             LoadPlayerData();
             RefreshStartingPoint();
         }
@@ -148,9 +150,9 @@ namespace Berzerk
             }
         }
 
-        public void DecreaseHealth()
+        public void DecreaseHealth(float damage)
         {
-            playerData.health -= 10;
+            playerData.health -= damage;
             SavePlayerData();
         }
 
@@ -158,9 +160,14 @@ namespace Berzerk
         {
             if (collision.gameObject.CompareTag("Zombie"))
             {
-                DecreaseHealth();
+                zombie = collision.gameObject.GetComponent<Zombie>();
+                if (zombie != null)
+                {
+                    DecreaseHealth(zombie.damage);
+                }
             }
         }
+
 
         private void OnTriggerEnter2D(Collider2D collision)
         {
@@ -354,10 +361,10 @@ namespace Berzerk
         private void ResetPlayer()
         {
             ResetPlayerData();
-            transform.position = startPosition; 
+            transform.position = startPosition;
             InitializePlayerComponents();
             UpdateUIReferences();
-            RefreshStartingPoint(); 
+            RefreshStartingPoint();
         }
 
         public void ResetPlayerData()

@@ -7,12 +7,12 @@ namespace Berzerk
     public class Bullet : MonoBehaviour
     {
         [Header("Set in Inspector")]
-        public GameObject bloodEffect; // Effect to instantiate upon hitting a zombie
         private BulletPool bulletPool;
 
         public void Initialize(BulletPool pool)
         {
             bulletPool = pool;
+            DeactivateAfterTime(10f);
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -27,9 +27,15 @@ namespace Berzerk
             {
                 HandleZombieHit(collision.gameObject);
             }
-            else
+            if (collision.gameObject.CompareTag("Door"))
+
             {
-                // Return the bullet to the pool if it hits anything else
+                bulletPool.ReturnBullet(gameObject);
+            }
+
+            if (collision.gameObject.CompareTag("Obstacle"))
+
+            {
                 bulletPool.ReturnBullet(gameObject);
             }
         }
@@ -41,16 +47,9 @@ namespace Berzerk
 
             if (zombieHealth != null)
             {
-                InstantiateBloodEffect();
                 zombieHealth.DecreaseHealth();
                 Destroy(gameObject); // Destroy the bullet
             }
-        }
-
-        // Instantiates the blood effect at the bullet's position
-        private void InstantiateBloodEffect()
-        {
-            Instantiate(bloodEffect, transform.position, transform.rotation);
         }
 
         public void DeactivateAfterTime(float delay)

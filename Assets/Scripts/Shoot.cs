@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Berzerk
 {
@@ -62,15 +61,20 @@ namespace Berzerk
             {
                 timeToFire -= fireRate * Time.deltaTime;
             }
+            else
+            {
+                canShoot = true;
+            }
         }
 
         public void ShootLogic(Vector2 direction)
         {
-            if (canShoot && timeToFire <= 0f && !isInteracting)
+            if (canShoot && !isInteracting)
             {
                 currentAmmo--;
 
                 gunShot?.Play();
+                OnGunShot(transform.position, 50f); // Adjust the radius as needed
 
                 GameObject bullet = bulletPool?.GetBullet();
                 if (bullet != null)
@@ -84,6 +88,7 @@ namespace Berzerk
                 }
 
                 timeToFire = timeToFireMax;
+                canShoot = false;
                 if (!flashing)
                 {
                     StartCoroutine(Flashtime());
@@ -112,7 +117,6 @@ namespace Berzerk
             {
                 uiManager.ammoDisplay.text = currentAmmo.ToString();
             }
-            canShoot = currentAmmo > 0;
         }
 
         private IEnumerator ReturnBulletToPool(GameObject bullet, float delay)
@@ -120,5 +124,22 @@ namespace Berzerk
             yield return new WaitForSeconds(delay);
             bulletPool?.ReturnBullet(bullet);
         }
+
+        private void OnGunShot(Vector2 shotPosition, float hearingRadius)
+        {
+            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(shotPosition, hearingRadius);
+            foreach (var hitCollider in hitColliders)
+            {
+                if (hitCollider.CompareTag("Zombie"))
+                {
+                    Zombie nearbyZombie = hitCollider.GetComponent<Zombie>();
+                    if (nearbyZombie != null)
+                    {
+                        nearbyZombie.OnGunShotHeard(shotPosition);
+                    }
+                }
+            }
+        }
     }
 }
+

@@ -9,10 +9,15 @@ namespace Berzerk
         [Header("Spawn Settings")]
         public GameObject[] zombies;
         public float waitTime;
+        private int totalZombies;
+        [SerializeField] public int maxZombies;
 
         private void Start()
         {
-            StartCoroutine(SpawnCoroutine());
+            if (totalZombies < maxZombies)
+            {
+                StartCoroutine(SpawnCoroutine());
+            }
         }
 
         private IEnumerator SpawnCoroutine()
@@ -26,8 +31,12 @@ namespace Berzerk
 
         private void SpawnZombie()
         {
-            int rand = Random.Range(0, zombies.Length);
-            Instantiate(zombies[rand], transform.position, transform.rotation);
+            if (totalZombies < maxZombies)
+            {
+                int rand = Random.Range(0, zombies.Length);
+                Instantiate(zombies[rand], transform.position, transform.rotation);
+                totalZombies++;
+            }
         }
     }
 }
