@@ -18,6 +18,8 @@ namespace Berzerk
         {
             Debug.Log("Key picked up: " + keyID);
             Player.Instance.AddKey(keyID);
+            Player.Instance.PlayKeyPickupSound();
+
         }
 
         public override void OnTriggerEnter2D(Collider2D collision)

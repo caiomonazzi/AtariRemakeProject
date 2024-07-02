@@ -12,6 +12,9 @@ namespace Berzerk
 
             // Increase the player's coin count
             Player.Instance.IncreaseCoinCount();
+
+            // Play coin pickup sound
+            Player.Instance.PlayCoinPickupSound();
         }
 
         public override void OnTriggerEnter2D(Collider2D collision)

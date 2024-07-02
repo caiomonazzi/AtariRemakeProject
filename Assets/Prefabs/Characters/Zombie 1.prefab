@@ -190,8 +190,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentState: 0
+  isStaggered: 0
+  staggerDuration: 1
   wanderSpeed: 2.33
-  chaseSpeed: 4.33
+  chaseSpeed: 3.73
   attackSpeed: 1
   lineOfSight: 4
   hearingRadius: 15
@@ -209,7 +211,6 @@ MonoBehaviour:
   animator: {fileID: 7273267694730024889}
   walkingAudio: {fileID: 5682760149982860325}
   attackingAudio: {fileID: 5682760149982860325}
-  cameraShake: {fileID: 0}
 --- !u!50 &7045809311840050002
 Rigidbody2D:
   serializedVersion: 4
@@ -250,7 +251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 40
-  damage: 10
+  staggerDuration: 0.5
 --- !u!114 &3686154554639183553
 MonoBehaviour:
   m_ObjectHideFlags: 0

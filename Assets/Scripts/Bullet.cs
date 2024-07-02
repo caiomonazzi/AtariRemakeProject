@@ -8,6 +8,7 @@ namespace Berzerk
     {
         [Header("Set in Inspector")]
         private BulletPool bulletPool;
+        private float damage = 20f;
 
         public void Initialize(BulletPool pool)
         {
@@ -47,7 +48,7 @@ namespace Berzerk
 
             if (zombieHealth != null)
             {
-                zombieHealth.DecreaseHealth();
+                zombieHealth.DecreaseHealth(damage);
                 Destroy(gameObject); // Destroy the bullet
             }
         }

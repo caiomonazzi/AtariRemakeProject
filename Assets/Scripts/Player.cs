@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
+public enum WeaponType { Melee, Ranged }
+
 namespace Berzerk
 {
     [System.Serializable]
@@ -11,34 +13,40 @@ namespace Berzerk
     {
         public float health;
         public int coins;
-        public int ammo;
         public HashSet<int> keys = new HashSet<int>();
+        public WeaponType currentWeaponType;
+        public int currentAmmo;
     }
 
     public class Player : MonoBehaviour
     {
         public static Player Instance { get; private set; }
+        private CameraFollow cameraFollow;
+        public Animator characterAnimator;
+        public SpriteRenderer characterSpriteRenderer;
+
         private PlayerData playerData;
-        private Vector3 startPosition; // Store the start position
         private Zombie zombie;
+
+        [Header("Animator Settings")]
+        public bool isMoving;
+        public bool hasGun;
+        public bool isAttacking;
+        public bool isShooting;
 
         [Header("Components Settings")]
         public Rigidbody2D rb;
         private XPSystem xpSystem;
+        private Weapon weapon;
+        private MeleeWeapon meleeWeapon;
 
         [Header("Movement Settings")]
         public float moveSpeed = 5f;
         private Vector2 movement;
-        private Vector2 lastDirection;
+        public Vector2 lastDirection;
 
         [Header("Health")]
         private const float maxHealth = 100f;
-
-        [Header("Weapons/Ammo")]
-        private Shoot shot;
-        public GameObject projectilePrefab;
-        public float projectileSpeed = 10f;
-        public float aimAssistAngleThreshold = 10f; // Angle threshold for aim assist
 
         [Header("Keys")]
         private HashSet<int> keys;
@@ -51,6 +59,16 @@ namespace Berzerk
         [Header("Parameters")]
         public int coinCount; // Coin count
         public float timeToDamage; // Time for pause between AI damage
+
+        [Header("Audio Settings")]
+        public AudioSource sfxAudioSource; // Reference to the AudioSource component
+        public AudioSource musicAudioSource; // Reference to the AudioSource component
+        public AudioClip keyPickupSound; // The audio clip to play when a key is picked up
+        public AudioClip healthPickupSound; // The audio clip to play when health is picked up
+        public AudioClip ammoPickupSound; // The audio clip to play when ammo is picked up
+        public AudioClip doorOpenSound; // The audio clip to play when a door is opened
+        public AudioClip coinPickupSound; // The audio clip to play when a coin is picked up
+        private AudioClip previousMusic;
 
         private void Awake()
         {
@@ -73,30 +91,53 @@ namespace Berzerk
             InitializePlayerComponents();
             // ResetPlayerData();
             LoadPlayerData();
-            RefreshStartingPoint();
+            InitializeAnimatorParameters();
+
+            // Ensure the camera follows the player after loading position
+            if (cameraFollow != null)
+            {
+                cameraFollow.FindPlayer();
+            }
         }
 
         private void InitializePlayerComponents()
         {
             xpSystem = GetComponent<XPSystem>();
-            shot = GetComponent<Shoot>();
-            if (shot != null)
+            weapon = GetComponentInChildren<Weapon>();
+            meleeWeapon = GetComponentInChildren<MeleeWeapon>();
+
+            if (weapon != null)
             {
-                // Fetch the BulletPool tagged as "_bulletPool"
                 GameObject bulletPoolObject = GameObject.FindGameObjectWithTag("_bulletPool");
                 if (bulletPoolObject != null)
                 {
-                    shot.bulletPool = bulletPoolObject.GetComponent<BulletPool>();
+                    weapon.bulletPool = bulletPoolObject.GetComponent<BulletPool>();
                 }
             }
         }
 
+
         private void Start()
         {
-            startPosition = transform.position;
             InitializePlayerComponents();
             LoadPlayerData();
             UpdateUIReferences();
+            InitializeAnimatorParameters();
+
+            // Find the CameraFollow script and assign the player
+            cameraFollow = Camera.main.GetComponent<CameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.FindPlayer();
+            }
+        }
+
+        private void InitializeAnimatorParameters()
+        {
+            characterAnimator.SetBool("isMoving", isMoving);
+            characterAnimator.SetBool("isShooting", isShooting);
+            characterAnimator.SetBool("isAttacking", isAttacking);
+            characterAnimator.SetBool("hasGun", hasGun);
         }
 
         private void UpdateUIReferences()
@@ -106,9 +147,9 @@ namespace Berzerk
             {
                 uiManager.healthSlider.value = playerData.health;
                 uiManager.coinsText.text = "Coins: " + coinCount;
-                if (shot != null)
+                if (weapon != null)
                 {
-                    uiManager.ammoDisplay.text = shot.currentAmmo.ToString();
+                    uiManager.ammoDisplay.text = weapon.currentAmmo.ToString();
                 }
             }
         }
@@ -125,7 +166,8 @@ namespace Berzerk
             }
 
             HandleMovementInput();
-            HandleShootingInput();
+            HandleWeaponInput();
+            SwitchWeaponIfNecessary(); // Ensure weapon switching logic is checked
         }
 
         private void FixedUpdate()
@@ -168,7 +210,6 @@ namespace Berzerk
             }
         }
 
-
         private void OnTriggerEnter2D(Collider2D collision)
         {
             if (collision.gameObject.CompareTag("Medkit"))
@@ -179,9 +220,11 @@ namespace Berzerk
             }
             else if (collision.gameObject.CompareTag("AmmoBox"))
             {
+                PickUpWeapon(collision.gameObject);
                 RefillAmmo();
-                Destroy(collision.gameObject);
+                SwitchToWeapon(WeaponType.Ranged);
                 SavePlayerData();
+                Destroy(collision.gameObject);
             }
         }
 
@@ -192,11 +235,11 @@ namespace Berzerk
 
         private void RefillAmmo()
         {
-            if (shot == null)
+            if (weapon != null)
             {
-                shot = GameObject.FindGameObjectWithTag("Player").GetComponent<Shoot>();
+                weapon.currentAmmo = weapon.maxAmmo;
+                SaveAmmo(); 
             }
-            shot.currentAmmo = shot.maxAmmo;
         }
 
         private void HandleMovementInput()
@@ -209,21 +252,96 @@ namespace Berzerk
             if (movement != Vector2.zero)
             {
                 lastDirection = movement;
+                isMoving = true;
+            }
+            else
+            {
+                isMoving = false;
+            }
+
+            characterAnimator.SetBool("isMoving", isMoving);
+        }
+
+
+        private void HandleWeaponInput()
+        {
+            if (playerData.currentWeaponType == WeaponType.Ranged)
+            {
+                HandleShootingInput();
+            }
+            else if (playerData.currentWeaponType == WeaponType.Melee)
+            {
+                HandleMeleeInput();
             }
         }
+
 
         private void HandleShootingInput()
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                if (shot != null && !shot.isInteracting)
+                if (weapon != null && !weapon.isInteracting && weapon.currentAmmo > 0)
                 {
-                    Vector2 shootDirection = GetShootDirection();
-                    shot.ShootLogic(shootDirection);
+                    isShooting = true;
+                    Vector2 shootDirection = weapon.GetShootDirection();
+                    weapon.ShootLogic(shootDirection);
                     SaveAmmo();
                 }
             }
+            else if (Input.GetKeyUp(KeyCode.Space))
+            {
+                isShooting = false;
+            }
+
+            // Update animator
+            characterAnimator.SetBool("isShooting", isShooting);
         }
+
+
+        private void HandleMeleeInput()
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                if (meleeWeapon != null)
+                {
+                    isAttacking = true;
+                    meleeWeapon.MeeleeAttack();
+                }
+            }
+            else if (Input.GetKeyUp(KeyCode.Space))
+            {
+                isAttacking = false;
+            }
+
+            // Update animator
+            characterAnimator.SetBool("isAttacking", isAttacking);
+        }
+
+        private void SwitchToWeapon(WeaponType weaponType)
+        {
+            playerData.currentWeaponType = weaponType;
+            hasGun = (weaponType == WeaponType.Ranged);
+
+            // Update animator
+            characterAnimator.SetBool("hasGun", hasGun);
+        }
+
+        public void PickUpWeapon(GameObject weaponObject)
+        {
+            Weapon newWeapon = weaponObject.GetComponent<Weapon>();
+            if (newWeapon != null)
+            {
+                weapon = newWeapon;
+                weapon.Initialize();
+                playerData.currentWeaponType = WeaponType.Ranged;
+                playerData.currentAmmo = weapon.currentAmmo;
+                Destroy(weaponObject);
+                InitializePlayerComponents();
+                SavePlayerData();
+                SwitchToWeapon(WeaponType.Ranged); // Ensure the animator is updated
+            }
+        }
+
 
         private void MovePlayer()
         {
@@ -237,44 +355,6 @@ namespace Berzerk
                 float angle = Mathf.Atan2(lastDirection.y, lastDirection.x) * Mathf.Rad2Deg - 90f;
                 rb.rotation = angle;
             }
-        }
-
-        private Vector2 GetNearestEnemyPosition()
-        {
-            GameObject[] enemies = GameObject.FindGameObjectsWithTag("Zombie");
-            float minDistance = Mathf.Infinity;
-            Vector2 nearestEnemyPosition = Vector2.zero;
-
-            foreach (GameObject enemy in enemies)
-            {
-                float distance = Vector2.Distance(rb.position, enemy.transform.position);
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    nearestEnemyPosition = enemy.transform.position;
-                }
-            }
-
-            return nearestEnemyPosition;
-        }
-
-        private Vector2 GetShootDirection()
-        {
-            Vector2 shootDirection = lastDirection;
-            Vector2 playerPosition = rb.position;
-            Vector2 nearestEnemyPosition = GetNearestEnemyPosition();
-
-            if (nearestEnemyPosition != Vector2.zero)
-            {
-                Vector2 toTarget = (nearestEnemyPosition - playerPosition).normalized;
-                float angle = Vector2.Angle(lastDirection, toTarget);
-                if (angle <= aimAssistAngleThreshold)
-                {
-                    shootDirection = Vector2.Lerp(lastDirection, toTarget, angle / aimAssistAngleThreshold);
-                }
-            }
-
-            return shootDirection;
         }
 
         public bool HasKey(int keyID)
@@ -303,18 +383,38 @@ namespace Berzerk
         {
             PlayerPrefs.SetFloat("PlayerHealth", playerData.health);
             PlayerPrefs.SetInt("PlayerCoins", coinCount);
-            SaveAmmo();
+            playerData.currentAmmo = weapon != null ? weapon.currentAmmo : 0;
+            PlayerPrefs.SetInt("PlayerAmmo", playerData.currentAmmo);
+            PlayerPrefs.SetInt("WeaponType", (int)playerData.currentWeaponType);
+
+            SaveKeys();
             PlayerPrefs.Save();
         }
+
 
         private void LoadPlayerData()
         {
             playerData = new PlayerData();
             playerData.health = PlayerPrefs.GetFloat("PlayerHealth", maxHealth);
             coinCount = PlayerPrefs.GetInt("PlayerCoins", 0);
+            playerData.currentAmmo = PlayerPrefs.GetInt("PlayerAmmo", 0); // Default to 0 if not found
+            playerData.currentWeaponType = (WeaponType)PlayerPrefs.GetInt("WeaponType", (int)WeaponType.Melee);
+
             LoadKeys();
-            LoadAmmo();
+
+            // Ensure weapon is correctly initialized with the loaded data
+            if (weapon != null)
+            {
+                weapon.currentAmmo = playerData.currentAmmo;
+                if (playerData.currentWeaponType == WeaponType.Ranged)
+                {
+                    weapon.Initialize();
+                }
+            }
+
+            SwitchWeaponIfNecessary();
         }
+
 
         private void SaveKeys()
         {
@@ -341,30 +441,28 @@ namespace Berzerk
 
         public void SaveAmmo()
         {
-            PlayerPrefs.SetInt("PlayerAmmo", shot.currentAmmo);
-            PlayerPrefs.Save();
-        }
-
-        private void LoadAmmo()
-        {
-            if (shot != null)
+            if (weapon != null)
             {
-                shot.currentAmmo = PlayerPrefs.GetInt("PlayerAmmo", shot.maxAmmo);
+                PlayerPrefs.SetInt("PlayerAmmo", weapon.currentAmmo);
+                PlayerPrefs.Save();
             }
         }
 
-        private void RefreshStartingPoint()
+
+        private void LoadAmmo()
         {
-            startPosition = transform.position;
+            if (weapon != null)
+            {
+                weapon.currentAmmo = PlayerPrefs.GetInt("PlayerAmmo", weapon.maxAmmo);
+            }
         }
+
 
         private void ResetPlayer()
         {
             ResetPlayerData();
-            transform.position = startPosition;
             InitializePlayerComponents();
             UpdateUIReferences();
-            RefreshStartingPoint();
         }
 
         public void ResetPlayerData()
@@ -383,9 +481,9 @@ namespace Berzerk
             if (uiManager != null)
                 uiManager.healthSlider.value = playerData.health;
 
-            if (shot != null)
+            if (weapon != null)
             {
-                shot.currentAmmo = shot.maxAmmo;
+                weapon.currentAmmo = weapon.maxAmmo;
                 SaveAmmo();
             }
 
@@ -394,5 +492,100 @@ namespace Berzerk
                 xpSystem.ResetXP();
             }
         }
+
+        private void SwitchWeaponIfNecessary()
+        {
+            if (playerData.currentWeaponType == WeaponType.Ranged && (weapon == null || weapon.currentAmmo <= 0))
+            {
+                SwitchToWeapon(WeaponType.Melee);
+            }
+        }
+
+        public void PlayCoinPickupSound()
+        {
+            PlaySound(coinPickupSound);
+        }
+
+        public void PlayKeyPickupSound()
+        {
+            PlaySound(keyPickupSound);
+        }
+
+        public void PlayHealthPickupSound()
+        {
+            PlaySound(healthPickupSound);
+        }
+
+        public void PlayAmmoPickupSound()
+        {
+            PlaySound(ammoPickupSound);
+        }
+
+        public void PlayDoorOpenSound()
+        {
+            PlaySound(doorOpenSound);
+        }
+
+        public void PlayMusic(AudioClip clip)
+        {
+            if (musicAudioSource != null && clip != null)
+            {
+                previousMusic = musicAudioSource.clip;
+                musicAudioSource.clip = clip;
+                musicAudioSource.Play();
+            }
+            else
+            {
+                Debug.LogWarning("Music AudioSource or AudioClip is missing.");
+            }
+        }
+
+        public void StopMusic()
+        {
+            if (musicAudioSource != null)
+            {
+                musicAudioSource.Stop();
+                if (previousMusic != null)
+                {
+                    musicAudioSource.clip = previousMusic;
+                    musicAudioSource.Play();
+                    previousMusic = null;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Music AudioSource is missing.");
+            }
+        }
+
+        private void PlaySound(AudioClip clip)
+        {
+            if (sfxAudioSource != null && clip != null)
+            {
+                sfxAudioSource.PlayOneShot(clip);
+            }
+            else
+            {
+                Debug.LogWarning("AudioSource or AudioClip is missing.");
+            }
+        }
+
+        // Save the player's current position
+        public void SavePlayerPosition()
+        {
+            PlayerPrefs.SetFloat("PlayerPosX", transform.position.x);
+            PlayerPrefs.SetFloat("PlayerPosY", transform.position.y);
+            PlayerPrefs.Save();
+        }
+
+        // Load the player's saved position
+        private void LoadPlayerPosition()
+        {
+            float x = PlayerPrefs.GetFloat("PlayerPosX", transform.position.x);
+            float y = PlayerPrefs.GetFloat("PlayerPosY", transform.position.y);
+            transform.position = new Vector2(x, y);
+        }
+
+
     }
 }

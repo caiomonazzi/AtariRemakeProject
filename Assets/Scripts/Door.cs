@@ -58,6 +58,9 @@ namespace Berzerk
 
             interactionTrigger.isInteracting = false; // Reset interaction status
             Debug.Log("Door opened with key ID: " + needKeyID);
+            Player.Instance.PlayDoorOpenSound(); // Play the door open sound
+
         }
+
     }
 }

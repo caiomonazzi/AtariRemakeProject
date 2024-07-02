@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Berzerk
@@ -8,32 +7,46 @@ namespace Berzerk
     {
         private XPSystem xp;
         private EffectPool effectPool;
+        private Zombie zombie;
 
         [Header("Assign in inspector")]
         public float health;
-        public float damage;
+        public float staggerDuration = 0.5f;
 
         private void Start()
         {
-            // Find the player and get the xp script when it spawns
             xp = GameObject.FindGameObjectWithTag("Player").GetComponent<XPSystem>();
-
-            // Find the effect pool
             effectPool = GameObject.FindGameObjectWithTag("EffectPool").GetComponent<EffectPool>();
+            zombie = GetComponent<Zombie>();
         }
 
-        public void Update()
+        public void DecreaseHealth(float damage)
         {
-            // If its health is 0 add the blood splat prefab and destroy it
+            health -= damage;
             if (health <= 0)
             {
-                GameObject effect = effectPool.GetEffect();
-                effect.transform.position = transform.position;
-                effect.transform.rotation = transform.rotation;
+                HandleDeath();
+            }
+            else
+            {
+                Stagger();
+            }
+        }
 
-                xp.IncreaseXP();
-                Destroy(this.gameObject);
-                StartCoroutine(ReturnEffectToPool(effect, 1f)); // Return effect to pool after 1 second
+        private void HandleDeath()
+        {
+            GameObject effect = effectPool.GetEffect();
+            effect.transform.position = transform.position;
+            xp.IncreaseXP();
+            Destroy(gameObject);
+            StartCoroutine(ReturnEffectToPool(effect, 1f));
+        }
+
+        private void Stagger()
+        {
+            if (zombie != null)
+            {
+                zombie.Stagger(staggerDuration);
             }
         }
 
@@ -41,12 +54,6 @@ namespace Berzerk
         {
             yield return new WaitForSeconds(delay);
             effectPool.ReturnEffect(effect);
-        }
-
-        // Take away health if shot
-        public void DecreaseHealth()
-        {
-            health -= damage;
         }
     }
 }

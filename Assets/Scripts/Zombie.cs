@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Berzerk
@@ -20,21 +19,26 @@ namespace Berzerk
 
         [SerializeField] private State currentState;
         private Transform player;
+
         private Vector2 wanderDirection;
         private float wanderTimer;
+
         private Vector2 spawnPosition;
         private float currentSpeed;
         private float attackTimer;
-        private bool isPlayerInSight;
-        private bool isPlayerInAttackRange;
-        private bool isPlayerHeard;
         private float alertCooldown = 1f;
         private float lastAlertTime;
         private Vector3 lastKnownPosition;
         private float memoryDuration = 5f;
         private float memoryTimer;
         private float investigateTimer;
-        private float investigateDuration = 10f;  // Time to stay at the investigation spot
+        private float investigateDuration = 10f;
+        public bool isStaggered = false;
+        public float staggerDuration;
+
+        private bool isPlayerInSight;
+        private bool isPlayerInAttackRange;
+        private bool isPlayerHeard;
 
         [Header("Assign in Inspector")]
         public float wanderSpeed;
@@ -57,6 +61,7 @@ namespace Berzerk
         private CameraShake cameraShake;
 
         private bool isAlerted = false;  // Track if the zombie is alerted
+        private bool canAttack;
 
         private void Start()
         {
@@ -71,6 +76,7 @@ namespace Berzerk
             wanderTimer = wanderInterval;
             currentSpeed = wanderSpeed;
             currentState = State.Idle;
+            canAttack = true;
 
             if (walkingAudio == null)
             {
@@ -123,11 +129,9 @@ namespace Berzerk
             {
                 case State.Idle:
                 case State.Patrolling:
-                    SetAnimatorBools(false, false);
                     Wander();
                     break;
                 case State.Chasing:
-                    SetAnimatorBools(true, false);
                     MoveZombie(lastKnownPosition);
                     PlayWalkingAudio();
                     if (Vector2.Distance(transform.position, lastKnownPosition) < 0.5f && !isPlayerInSight)
@@ -137,19 +141,15 @@ namespace Berzerk
                     }
                     break;
                 case State.Attacking:
-                    SetAnimatorBools(false, true);
                     Attack();
                     break;
                 case State.Fleeing:
-                    SetAnimatorBools(false, false);
                     Flee();
                     break;
                 case State.Investigating:
-                    SetAnimatorBools(false, false);
                     Investigate();
                     break;
                 case State.Returning:
-                    SetAnimatorBools(false, false);
                     Return();
                     break;
                 case State.Dead:
@@ -158,11 +158,10 @@ namespace Berzerk
             }
         }
 
-
         private void SetAnimatorBools(bool isChasing, bool isAttacking)
         {
-            animator.SetBool("isChasing", isChasing);
-            animator.SetBool("isAttacking", isAttacking);
+            // animator.SetBool("isChasing", isChasing);
+            // animator.SetBool("isAttacking", isAttacking);
         }
 
         private void PlayWalkingAudio()
@@ -231,6 +230,8 @@ namespace Berzerk
 
         private void Attack()
         {
+            if (!canAttack || isStaggered) return;  // Prevent attacking if staggered or during cooldown
+
             attackTimer += Time.deltaTime;
             if (attackTimer >= attackInterval)
             {
@@ -243,6 +244,7 @@ namespace Berzerk
                         playerComponent.DecreaseHealth(damage);
                         attackingAudio?.Play();
                         cameraShake?.Shake();
+                        StartCoroutine(AttackCooldown()); // Start cooldown after attack
                     }
                 }
                 else
@@ -251,6 +253,14 @@ namespace Berzerk
                 }
             }
         }
+
+        private IEnumerator AttackCooldown()
+        {
+            canAttack = false;
+            yield return new WaitForSeconds(attackInterval); // Cooldown duration
+            canAttack = true;
+        }
+
 
         private void Flee()
         {
@@ -359,6 +369,29 @@ namespace Berzerk
                 Gizmos.color = Color.magenta;
                 Gizmos.DrawWireSphere(lastKnownPosition, 0.5f);
             }
+        }
+
+        public void Stagger(float duration)
+        {
+            staggerDuration = duration;
+            StartCoroutine(StaggerCoroutine());
+        }
+
+        private IEnumerator StaggerCoroutine()
+        {
+            Debug.Log("Zombie staggered started.");
+            isStaggered = true;
+            currentSpeed = 0; // Stop movement
+            canAttack = false; // Disable attacks
+
+            yield return new WaitForSeconds(staggerDuration);
+
+            isStaggered = false;
+            canAttack = true; // Re-enable attacks
+            Debug.Log("Zombie staggered ended.");
+
+            // Restore movement speed based on the current state
+            currentSpeed = (currentState == State.Chasing) ? chaseSpeed : wanderSpeed;
         }
     }
 }
