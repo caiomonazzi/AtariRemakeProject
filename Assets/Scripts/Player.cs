@@ -168,6 +168,16 @@ namespace Berzerk
             HandleMovementInput();
             HandleWeaponInput();
             SwitchWeaponIfNecessary(); // Ensure weapon switching logic is checked
+
+            UpdateAnimatorParameters();
+        }
+
+        private void UpdateAnimatorParameters()
+        {
+            characterAnimator.SetBool("isMoving", isMoving);
+            characterAnimator.SetBool("isShooting", isShooting);
+            characterAnimator.SetBool("isAttacking", isAttacking);
+            characterAnimator.SetBool("hasGun", hasGun);
         }
 
         private void FixedUpdate()

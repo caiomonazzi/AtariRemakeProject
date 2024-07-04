@@ -7,7 +7,7 @@ namespace Berzerk
     {
         private enum State
         {
-            Idle,
+            Wander,
             Patrolling,
             Chasing,
             Attacking,
@@ -54,7 +54,6 @@ namespace Berzerk
         public float damage;
         public float maxChaseDistance = 30f;
         public Rigidbody2D rb;
-        public LayerMask obstacleMask;
         public Animator animator;
         public AudioSource walkingAudio;
         public AudioSource attackingAudio;
@@ -73,11 +72,13 @@ namespace Berzerk
             }
 
             spawnPosition = transform.position;
+
             wanderTimer = wanderInterval;
             currentSpeed = wanderSpeed;
-            currentState = State.Idle;
-            canAttack = true;
 
+            currentState = State.Wander;
+
+            canAttack = true;
             if (walkingAudio == null)
             {
                 walkingAudio = GetComponent<AudioSource>();
@@ -127,17 +128,17 @@ namespace Berzerk
         {
             switch (currentState)
             {
-                case State.Idle:
+                case State.Wander:
                 case State.Patrolling:
                     Wander();
                     break;
                 case State.Chasing:
-                    MoveZombie(lastKnownPosition);
+                    MoveZombie(player.position);
                     PlayWalkingAudio();
-                    if (Vector2.Distance(transform.position, lastKnownPosition) < 0.5f && !isPlayerInSight)
+                    if (Vector2.Distance(transform.position, player.position) < attackRange)
                     {
-                        currentState = State.Investigating;
-                        investigateTimer = 0f;
+                        currentState = State.Attacking;
+                        attackTimer = 0f;
                     }
                     break;
                 case State.Attacking:
@@ -158,6 +159,7 @@ namespace Berzerk
             }
         }
 
+
         private void SetAnimatorBools(bool isChasing, bool isAttacking)
         {
             // animator.SetBool("isChasing", isChasing);
@@ -175,19 +177,21 @@ namespace Berzerk
         private void MoveZombie(Vector2 targetPosition)
         {
             Vector2 direction = (targetPosition - (Vector2)transform.position).normalized;
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, currentSpeed * Time.deltaTime, obstacleMask);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, currentSpeed * Time.deltaTime);
             if (hit.collider != null)
             {
-                Vector2 avoidanceDirection = Vector2.Perpendicular(direction).normalized;
-                direction += avoidanceDirection * 0.5f;
-                direction.Normalize();
+                Vector2 avoidanceDirection = Vector2.Perpendicular(direction).normalized * 0.5f;
+                direction = (direction + avoidanceDirection).normalized;
             }
             Vector2 newPosition = rb.position + direction * currentSpeed * Time.deltaTime;
             rb.MovePosition(newPosition);
 
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            rb.rotation = Mathf.LerpAngle(rb.rotation, angle, Time.deltaTime * currentSpeed); // Smooth rotation
+            rb.rotation = Mathf.LerpAngle(rb.rotation, angle, 0.1f); // Adjusted damping factor for smoother rotation
+
+            animator.SetBool("isMoving", true);
         }
+
 
         private void Wander()
         {
@@ -220,7 +224,8 @@ namespace Berzerk
         {
             if (Vector2.Distance(transform.position, spawnPosition) < 0.1f)
             {
-                currentState = State.Idle;
+                currentState = State.Wander;
+                animator.SetBool("isMoving", false);
             }
             else
             {
@@ -245,6 +250,7 @@ namespace Berzerk
                         attackingAudio?.Play();
                         cameraShake?.Shake();
                         StartCoroutine(AttackCooldown()); // Start cooldown after attack
+                        animator.SetBool("isAttacking", true);
                     }
                 }
                 else
@@ -259,13 +265,15 @@ namespace Berzerk
             canAttack = false;
             yield return new WaitForSeconds(attackInterval); // Cooldown duration
             canAttack = true;
+
+            animator.SetBool("isAttacking", false);
         }
 
 
         private void Flee()
         {
             Vector2 fleeDirection = (transform.position - player.position).normalized;
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, fleeDirection, currentSpeed * Time.deltaTime, obstacleMask);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, fleeDirection, currentSpeed * Time.deltaTime);
             if (hit.collider != null)
             {
                 Vector2 avoidanceDirection = Vector2.Perpendicular(fleeDirection).normalized;
@@ -276,10 +284,15 @@ namespace Berzerk
             rb.MovePosition(newPosition);
             float angle = Mathf.Atan2(fleeDirection.y, fleeDirection.x) * Mathf.Rad2Deg;
             rb.rotation = Mathf.LerpAngle(rb.rotation, angle, Time.deltaTime * currentSpeed); // Smooth rotation
+
+            animator.SetBool("isMoving", true);
+
         }
 
         private void Die()
         {
+            animator.SetTrigger("Die");
+
             animator.SetTrigger("Die");
             currentSpeed = 0;
             Destroy(gameObject, deathDelay);
@@ -309,14 +322,14 @@ namespace Berzerk
             }
             else if (!isAlerted)
             {
-                currentState = State.Idle;
+                currentState = State.Wander;
                 currentSpeed = wanderSpeed;
             }
         }
 
         public void OnGunShotHeard(Vector2 shotPosition)
         {
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, (shotPosition - (Vector2)transform.position).normalized, hearingRadius, obstacleMask);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, (shotPosition - (Vector2)transform.position).normalized, hearingRadius);
             if (hit.collider == null || hit.collider.CompareTag("Player"))
             {
                 isPlayerHeard = true;

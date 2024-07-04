@@ -7,6 +7,8 @@ namespace Berzerk
     public class Door : MonoBehaviour
     {
         private SpriteRenderer spriteRenderer;
+        private Animator doorAnimator;
+        private bool isOpen;
         private Collider2D[] doorColliders;
         private bool isLocked = true;
         private InteractionTrigger interactionTrigger;
@@ -19,6 +21,7 @@ namespace Berzerk
             interactionTrigger = GetComponentInChildren<InteractionTrigger>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             doorColliders = GetComponents<Collider2D>();
+            doorAnimator = GetComponent<Animator>();
         }
 
         private void Update()
@@ -47,6 +50,7 @@ namespace Berzerk
 
         public void OpenDoor()
         {
+            doorAnimator.SetBool("isOpen", true); // Set animator parameter to trigger open animation
             isLocked = false; // Unlock door
             Player.Instance.UseKey(needKeyID); // Remove key from player
 
@@ -55,7 +59,6 @@ namespace Berzerk
                 doorColliders[i].enabled = false;
                 gameObject.SetActive(false);
             }
-
             interactionTrigger.isInteracting = false; // Reset interaction status
             Debug.Log("Door opened with key ID: " + needKeyID);
             Player.Instance.PlayDoorOpenSound(); // Play the door open sound

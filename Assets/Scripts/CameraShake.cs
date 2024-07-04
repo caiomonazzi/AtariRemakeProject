@@ -14,7 +14,7 @@ namespace Berzerk
 
         private void Awake()
         {
-            cameraTransform = Camera.main.transform; // Automatically find the main camera
+            cameraTransform = Camera.main.transform;
             originalPosition = cameraTransform.localPosition;
         }
 

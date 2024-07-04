@@ -117,8 +117,8 @@ Transform:
   m_GameObject: {fileID: 7045809311840050007}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 2}
+  m_LocalPosition: {x: 0.95, y: 0, z: 0}
+  m_LocalScale: {x: 0.05, y: 0.05, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7045809312349981987}
@@ -166,7 +166,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 5
-  m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: -4964261781754788548, guid: 19d2a7bc064ec0442ad63f4018d47225, type: 3}
   m_Color: {r: 0.8773585, g: 0.6580189, b: 0.6580189, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -205,9 +205,6 @@ MonoBehaviour:
   damage: 5
   maxChaseDistance: 100
   rb: {fileID: 7045809311840050002}
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 256
   animator: {fileID: 7273267694730024889}
   walkingAudio: {fileID: 5682760149982860325}
   attackingAudio: {fileID: 5682760149982860325}
@@ -301,8 +298,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.1
+  m_Offset: {x: -4.19, y: 0}
+  m_Radius: 7.85
 --- !u!95 &7273267694730024889
 Animator:
   serializedVersion: 7
@@ -313,7 +310,7 @@ Animator:
   m_GameObject: {fileID: 7045809311840050007}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 7532e1a70d27ccc42b86645d3a5efff0, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
