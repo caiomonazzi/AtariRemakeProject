@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09ca53e973f7fe94a9d63512553f7196, type: 3}
+  m_Name: Readme
+  m_EditorClassIdentifier: 
+  text: "Game Design Document (GDD) for Maze Shooter - Atari Berzerk Remake\r\n\r\n\nTable
+    of Contents\n\r\nOverview\r\nGame Concept\r\nGameplay and Mechanics\r\nMovement\r\nShooting\r\nEnemy
+    AI\r\nHealth and Damage\r\nPower-Ups and Collectibles\r\nDoors and Keys\r\nNext
+    Level Door\r\nLevel Design\r\nVisual and Audio Style\r\nTechnical Specifications\r\nDevelopment
+    Tools\r\nTeam Roles\r\nAppendices\r\n\r\n\r\nOverview\r\nGame Title: Maze Shooter
+    - Atari Berzerk Remake.\r\nGenre: Action, Shooter, Arcade\r\nPlatforms: PC \r\nTarget
+    Audience:\r\nFans of classic arcade games,\r\nPlayers who enjoy fast-paced action
+    shooters,\r\nGamers seeking a blend of nostalgia and modern gameplay.\r\n\r\nGame
+    Concept\r\nImmerse yourself in an updated maze shooter inspired by the classic
+    Atari game Berzerk. Enjoy enhanced graphics and modern gameplay mechanics while
+    navigating maze-like environments and fending off waves of enemies.\r\n\r\nGameplay
+    and Mechanics  \nMovement:\r\nControls:\r\nJoystick / Keyboard (W, A, S, D keys):\r\nUp:
+    W / Joystick up\r\nDown: S / Joystick down\r\nLeft: A / Joystick left\r\nRight:
+    D / Joystick right\r\nDiagonals: Combination of W, A, S, D / Joystick diagonals\r\nSmooth
+    transitions and animations for directional changes.\r\nAnimator parameters dynamically
+    reflect player states, including movement, shooting, and attacking.\r\nFeatures:\r\nEight-direction
+    movement: up, down, left, right, and diagonals.\r\nFluid and responsive controls.\r\nInput
+    Detection (WASD/Joystick)\r\nUpdate Animator Parameters\r\nMove Player Character\r\nRotate
+    Player Character\r\nShooting\r\nOverview: The shooting system allows players
+    to fire weapons in the direction the character is facing. Players switch between
+    melee and ranged weapons, managing ammunition effectively with pickups scattered
+    throughout the maze. The aimAssist feature helps correct the player's aim for
+    more accurate shooting.\r\nControls:\r\nFire: Space bar / Action button\r\nAim:
+    Dictated by the character's facing direction\r\nFeatures:\r\nInput Detection
+    (Spacebar/Action Button)\r\nCheck Weapon Type\r\nRanged: Fire Projectile, Decrease
+    Ammo, Play Sound\r\nMelee: Trigger Melee Attack Animation, Deal Damage\r\nDirectional
+    Shooting: Fire weapons in the direction the character is facing.\r\nAimAssist:
+    Subtle corrections to improve shooting accuracy.\r\nAmmunition Management: Players
+    need to collect ammo pickups scattered throughout the maze.\r\nSwitch Weapons:
+    Players can switch between melee and ranged weapons based on their strategy and
+    available resources.\r\nEnemy AI\r\nBehavior:\r\nZombies patrol the maze, chase
+    the player, and attack when within range.\r\nAI reacts dynamically to sounds
+    such as gunshots, adjusting their state to chase or investigate.\r\nFeatures:\r\nVarious
+    zombie types with distinct behaviors.\r\nEnemies can be staggered, temporarily
+    disabling their attacks and movement.\r\nZombie States: Idle, Patrolling, Chasing,
+    Attacking, Fleeing, Investigating, Dead\r\nState Transitions Based on Player
+    Proximity and Sound Detection\r\nExecute Corresponding Behavior\r\nHealth and
+    Damage\r\nHealth can be restored through pickups, and players must avoid enemy
+    attacks and environmental hazards to survive.\r\nFeatures:\r\nCollision Detection
+    with Enemies\r\nDecrease Player Health\r\nCheck for Player Death\r\nCollecting
+    Medkits\r\nRestore Player Health\r\nPlayer Health:\r\nAttributes:\r\nMax Health:
+    The player has a maximum health of 100.\r\nHealth UI: The player's current health
+    is visually represented on a UI slider.\r\nHealth Pickups: Medkits scattered
+    throughout the maze can restore the player's health.\r\nMechanics:\r\nHealth
+    Decrease: The player takes damage from enemy attacks and environmental hazards.
+    The DecreaseHealth method reduces the player's health and triggers player death
+    if health falls to zero.\r\nHealth Restoration: Players can restore their health
+    by collecting medkits, which call the RestoreHealth method to reset health to
+    maximum.\r\nDamage:\r\nPlayer sustains damage from enemy attacks and environmental
+    hazards.\r\nConstant tension to maintain health for survival.\r\nAttributes:\r\nDamage
+    Amount: Each enemy type deals a specific amount of damage to the player on contact.\r\nAttack
+    Interval: The frequency at which enemies can attack the player is managed by
+    a cooldown period.\r\n\r\nMechanics:\r\nDamage Application: When an enemy collides
+    with or enters the player's trigger area, the DecreaseHealth method is called
+    on the player, reducing their health by the enemy's damage amount.\r\nAttack
+    Interval: A cooldown period prevents enemies from dealing continuous damage without
+    a pause.\r\nPlayer Damage to Enemies:\r\nAttributes:\r\nBullet Damage: Each bullet
+    has a predefined damage value.\r\nMelee Damage: The melee weapon also has a predefined
+    damage value.\r\nStagger Effect: Hitting an enemy with a melee attack can stagger
+    them, temporarily disabling their movement and attacks.\r\nMechanics:\r\nBullet
+    Damage: When a bullet collides with an enemy, it calls the HandleZombieHit method,
+    reducing the enemy's health by the bullet's damage amount.\r\nMelee Damage: The
+    melee attack is initiated by calling the MeeleeAttack method, which enables the
+    melee collider to detect hits and apply damage to enemies. Enemies hit by melee
+    attacks may also be staggered.\r\nPower-Ups and Collectibles\r\nTypes:\r\nCoins:
+    Increase the player's score.\r\nKeys: Add to Inventory\r\nAmmo Boxes: Replenish
+    ammunition to maxAmmo.\r\nFeatures:\r\nEnhance player abilities with various
+    power-ups.\r\nCollectibles are strategically placed throughout the maze.\r\nDoors
+    and Keys\r\nMechanics:\r\nKeys: Players collect keys scattered throughout the
+    maze. Each key has a unique ID and can unlock corresponding doors.\r\nDoors:
+    Doors are placed at various points in the maze, blocking access to new areas.
+    They can be unlocked using the correct key.\r\nInteraction: Players interact
+    with doors by pressing the Spacebar. If the player has the correct key, the door
+    unlocks and opens.\r\nUnlocking Doors: When a door is unlocked, the key is removed
+    from the player's inventory, and the door becomes permanently open.\r\nScripts:\r\nDoor
+    Script: Manages the locking and unlocking of doors. Checks for key presence and
+    handles door opening animation and sound effects.\r\nDoorKey Script: Manages
+    key pickups. Adds the key to the player's inventory and plays a pickup sound
+    when collected.\r\nNext Level Door\r\nMechanics:\r\nLocked Status: The door may
+    start locked or unlocked. If locked, it requires specific conditions (e.g., collecting
+    all keys or defeating all enemies) to unlock.\r\nTransition: When the player
+    interacts with an unlocked Next Level Door, it triggers a scene transition to
+    the next level.\r\nPersistence: Player data such as health, ammo, and inventory
+    are carried over to the next level.\r\nScripts:\r\nNext Level Door Script: Manages
+    the transition to the next level. Ensures player data is saved and loaded correctly.
+    Handles door interaction and scene transition animations.\r\nLevel Design:\r\nBeatchart:\r\nLevel
+    1\r\n+---------------------------------+\r\n| Player enters the maze               
+    |\r\n| Initial enemies spawn                   |\r\n+---------------------------------+\r\n|
+    Find Key to open Door                 |\r\n| Encounter first power-up            
+    |\r\n+---------------------------------+\r\n| Defeat enemies and find             
+    |\r\n| the exit door                                  |\r\n+---------------------------------+\r\n\r\nDesign
+    Elements:\r\nVarious obstacles and enemy placements.\r\nIncreasing difficulty
+    with each level.\r\nVisual and Audio Style:\r\n\r\n\r\nVisual and Audio Style\r\nVisuals:
+    Retro-inspired pixel art with modern enhancements for clarity and detail.\r\nAudio:
+    8 bit chiptunes\r\nDevelopment Tools\r\nGame Engine: Unity\r\nProgramming Language:
+    C#\r\nTeam Roles\r\nGame Designer: \r\nProgrammer:\r\nArtist: \r\nSound Designer:\r\nQA
+    Tester: \r\n\r\nAppendices:\r\nMiro Board\r\nTrello Board\r\nDiscord\r\nGithub
+    link\r\n"
