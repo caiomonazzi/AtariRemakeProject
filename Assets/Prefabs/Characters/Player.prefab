@@ -695,10 +695,10 @@ AudioSource:
   m_GameObject: {fileID: 5920061389440502327}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300002, guid: 3c1b9eed92d29bb46887e71f87c13776, type: 2}
   m_audioClip: {fileID: 8300000, guid: 92e26b7576516fb4f9f303a86eb0291b, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.9
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -830,7 +830,7 @@ Transform:
   m_GameObject: {fileID: 5992003700117361079}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 3.4, y: 6.48, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -852,7 +852,7 @@ MonoBehaviour:
   m_LightType: 3
   m_BlendStyleIndex: 0
   m_FalloffIntensity: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.8984016, b: 0.5990566, a: 1}
   m_Intensity: 1
   m_LightVolumeIntensity: 0
   m_LightVolumeEnabled: 0
@@ -874,9 +874,9 @@ MonoBehaviour:
   m_LocalBounds:
     m_Center: {x: 0, y: -0.00000011920929, z: 0}
     m_Extent: {x: 0.9985302, y: 0.99853027, z: 0}
-  m_PointLightInnerAngle: 60
+  m_PointLightInnerAngle: 96.03
   m_PointLightOuterAngle: 360
-  m_PointLightInnerRadius: 2
+  m_PointLightInnerRadius: 1
   m_PointLightOuterRadius: 10
   m_ShapeLightParametricSides: 5
   m_ShapeLightParametricAngleOffset: 0

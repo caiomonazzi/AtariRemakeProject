@@ -225,8 +225,8 @@ namespace Berzerk
             if (collision.gameObject.CompareTag("Medkit"))
             {
                 RestoreHealth();
-                Destroy(collision.gameObject);
                 SavePlayerData();
+                Destroy(collision.gameObject);
             }
             else if (collision.gameObject.CompareTag("AmmoBox"))
             {

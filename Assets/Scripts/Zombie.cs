@@ -55,12 +55,18 @@ namespace Berzerk
         public float maxChaseDistance = 30f;
         public Rigidbody2D rb;
         public Animator animator;
-        public AudioSource walkingAudio;
-        public AudioSource attackingAudio;
+        public AudioClip walkingAudio;
+        public AudioClip attackingAudio;
+        private AudioSource zombieAudio;
         private CameraShake cameraShake;
 
         private bool isAlerted = false;  // Track if the zombie is alerted
         private bool canAttack;
+
+        private void Awake()
+        {
+            zombieAudio = GetComponent<AudioSource>();
+        }
 
         private void Start()
         {
@@ -81,7 +87,6 @@ namespace Berzerk
             canAttack = true;
             if (walkingAudio == null)
             {
-                walkingAudio = GetComponent<AudioSource>();
                 if (walkingAudio == null)
                 {
                     Debug.LogWarning("AudioSource component not found on the zombie.");
@@ -158,19 +163,12 @@ namespace Berzerk
                     break;
             }
         }
-
-
-        private void SetAnimatorBools(bool isChasing, bool isAttacking)
-        {
-            // animator.SetBool("isChasing", isChasing);
-            // animator.SetBool("isAttacking", isAttacking);
-        }
-
         private void PlayWalkingAudio()
         {
-            if (!walkingAudio.isPlaying)
+            if (!zombieAudio.isPlaying && !canAttack)
             {
-                walkingAudio.Play();
+                zombieAudio.clip = walkingAudio;
+                zombieAudio.Play();
             }
         }
 
@@ -247,7 +245,7 @@ namespace Berzerk
                     if (playerComponent != null)
                     {
                         playerComponent.DecreaseHealth(damage);
-                        attackingAudio?.Play();
+                        zombieAudio.PlayOneShot(attackingAudio);
                         cameraShake?.Shake();
                         StartCoroutine(AttackCooldown()); // Start cooldown after attack
                         animator.SetBool("isAttacking", true);

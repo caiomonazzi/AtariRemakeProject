@@ -195,19 +195,19 @@ MonoBehaviour:
   wanderSpeed: 2.33
   chaseSpeed: 3.73
   attackSpeed: 1
-  lineOfSight: 4
-  hearingRadius: 15
+  lineOfSight: 13.3
+  hearingRadius: 15.5
   attackRange: 1.5
-  wanderRadius: 5
-  wanderInterval: 5
+  wanderRadius: 10
+  wanderInterval: 10.33
   attackInterval: 2
   deathDelay: 0.15
   damage: 5
-  maxChaseDistance: 100
+  maxChaseDistance: 111
   rb: {fileID: 7045809311840050002}
   animator: {fileID: 7273267694730024889}
-  walkingAudio: {fileID: 5682760149982860325}
-  attackingAudio: {fileID: 5682760149982860325}
+  walkingAudio: {fileID: 8300000, guid: 8b3e10c07dd2a2b4b839badcbd97ded9, type: 3}
+  attackingAudio: {fileID: 8300000, guid: f06d8ca44c5d15b4683f43bddfdf8b16, type: 3}
 --- !u!50 &7045809311840050002
 Rigidbody2D:
   serializedVersion: 4
@@ -331,8 +331,8 @@ AudioSource:
   m_GameObject: {fileID: 7045809311840050007}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300002, guid: 0060bc27b9f98234aa46a553825f200f, type: 2}
+  m_audioClip: {fileID: 8300000, guid: 8b3e10c07dd2a2b4b839badcbd97ded9, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1

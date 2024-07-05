@@ -16,6 +16,7 @@ TagManager:
   - Obstacle
   - FirePoint
   - WeaponPickup
+  - SpawnPointEnemy
   layers:
   - Default
   - TransparentFX
@@ -26,7 +27,7 @@ TagManager:
   - Zombie
   - Ground
   - Obstacle
-  - 
+  - Walls
   - 
   - 
   - 
